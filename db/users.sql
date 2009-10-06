@@ -1,4 +1,10 @@
-REATE TABLE users (
+-- psql template1
+
+-- CREATE DATABASE worg;
+
+-- psql worg
+
+CREATE TABLE users (
 id SERIAL NOT NULL,
 author VARCHAR(20) NOT NULL UNIQUE,
 digest VARCHAR(32) NOT NULL,
