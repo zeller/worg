@@ -88,6 +88,12 @@ done via the wiki.
 Modify index.php to reference your database, which by default looks
 for worg@localhost:5432. 
 
+To add users:
+
+#+BEGIN_EXAMPLE
+INSERT INTO users (author, digest, email) VALUES ('Author name', MD5('password'), 'Author email');
+#+END_EXAMPLE
+
 * Testing
 
 Visit =test.html= and try creating some org markup via the browser and
