@@ -1,0 +1,103 @@
+# -*- mode: org -*-
+#+TITLE: Worg instructions
+#+AUTHOR: Michael Zeller
+#+EMAIL: michael.zeller@uci.edu
+
+Worg is my version of a wiki/reporting engine built around
+org-mode. It is a single php file, with a bit of rewrite rules in
+Apache to abstract multiple URLs to calls to this php file.
+
+The entire wiki maps to a single directory on the server, which can be
+edited, version controlled, and backed up independently from the
+plumbing that runs the wiki.
+
+There are a few requirements,
+
+* Install Apache
+
+You will need Apache, specifically the =apache2= package.
+
+** Extra modules
+
+You will need mod_php5 (libapache2-mod-php5), mod_rewrite, and
+mod_alias.
+
+* Install the Worg
+
+=git clone git://github.com/zeller/org-mode.git= and =make install= to
+install it server-wide.
+
+All updates will come via the above repo. You should also grab Emacs
+from CVS.
+
+Also, =git clone git://github.com/zeller/worg.git=. This will give you
+the php and the configuration files for Apache. For now, just put this
+in a location where you want to keep your org files (i.e. =/var/www=)
+
+Make you sure also have ESS, and have installed ESS server-wide using =make install=.
+
+* Configure Apache
+
+By default, Apache will run out of /var/www and the configuration
+files will be in =/etc/apache2/=.
+
+I've provided an example =httpd.conf= that can be used to start with,
+but modify as needed. The essential bits are the following:
+
+#+BEGIN_EXAMPLE
+# if you use apache from the repository, configure this using modules_enabled
+LoadModule alias_module modules/mod_alias.so
+LoadModule rewrite_module modules/mod_rewrite.so
+LoadModule php5_module modules/libphp5.so
+#+END_EXAMPLE
+
+#+BEGIN_EXAMPLE
+# if you use apache from the repository, place this in the default Document node
+RewriteEngine On
+RewriteCond %{REQUEST_URI} !^/org
+RewriteRule (.*)\.(png|jpg)$ /org/$1.$2
+RedirectMatch 301 (.*)/$ $1/index.html
+RewriteRule ^index.html /index.php
+RewriteRule (.*)\.html$ /index.php?view=$1
+RewriteRule (.*)\.html&mode=edit /index.php?view=$1&mode=edit
+RewriteRule (.*)\.html&mode=login /index.php?view=$1&mode=login
+RewriteRule (.*)\.html&mode=logout /index.php?view=$1&mode=logout
+#+END_EXAMPLE
+
+#+BEGIN_EXAMPLE 
+AddType application/x-httpd-php .php
+AddHandler php5-script .php
+#+END_EXAMPLE
+
+
+* Database backend
+
+The wiki can be used with either MySQL or PostgreSQL. The provided
+schema and php (from the worg.git) work with PostgreSQL, but MySQL has
+been used and requires only a few changes to the schema and php
+code. For PostgreSQL, install =php5-pgsql=.
+
+If not using postgres from the repository:
+- To start, create an empty database using =initdb -D users=
+(preferably in the =db= folder). Use the provided schema to create the
+=users= table, and =INSERT= into this table (you can use the MD5
+function in your SQL to compute the MD5 hash of your
+password). Currently, this has to be done on the server and cannot be
+done via the wiki.
+
+Modify index.php to reference your database, which by default looks
+for worg@localhost:5432. 
+
+* Testing
+
+Visit =test.html= and try creating some org markup via the browser and
+emacs should run in the background and compile the org to HTML. For
+extra security, you can use a designated user account for the wiki
+(for example, Debian uses www-data). 
+
+You will need to explicitly create any folders on the server if
+needed, i.e. to create =stuff/test.html= you will need to first create
+=stuff= on the server.
+
+If LaTeX generation does not work, download the =dvipng= and
+=tetex-extra= packages.
