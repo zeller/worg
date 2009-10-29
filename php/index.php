@@ -138,18 +138,18 @@ if(ereg('[^A-Za-z0-9_/]', $view)) die("Invalid page requested: " . $view);
   $auth = 0;
 
   if($_POST && $_POST['user'] != "" && $_POST['pass'] != "") {
+    
+    $db = pg_connect("host=localhost port=5432 dbname=worg user=worg password=worg") or die("Couldn't connect to the database.");
 
-     $db = mysql_connect('localhost', 'worg', 'worg') or die("Couldn't connect to the database.");
-     mysql_select_db('worg') or die("Couldn't select the database");
+    // Add slashes to the username, and make a md5 checksum of the password.
+    $_POST['user'] = addslashes($_POST['user']);
+    $_POST['pass'] = md5($_POST['pass']);
 
-     // Add slashes to the username, and make a md5 checksum of the password.
-     $_POST['user'] = addslashes($_POST['user']);
-     $_POST['pass'] = md5($_POST['pass']);
+    $ret = pg_query($db, "SELECT count(id) FROM users WHERE digest='$_POST[pass]' AND author='$_POST[user]'") or die("Couldn't query the user-database.");
 
-     $result = mysql_query("SELECT count(id) FROM users WHERE digest='$_POST[pass]' AND author='$_POST[user]'") or die("Couldn't query the user-database.");
-     $num = mysql_result($result, 0);
+    $num = pg_fetch_array($ret, NULL, PGSQL_NUM);   
 
-     if ($num) {
+     if ($num[0]) {
      
      // Start the login session
      session_start();
@@ -169,14 +169,13 @@ if(ereg('[^A-Za-z0-9_/]', $view)) die("Invalid page requested: " . $view);
   session_start();
   # always check if user is authenticated
   if ($_SESSION['user'] && $_SESSION['pass']) {
+    $db = pg_connect("host=localhost port=5432 dbname=worg user=worg password=worg") or die("Couldn't connect to the database.");
     
-    $db = mysql_connect('localhost', 'worg', 'worg') or die("Couldn't connect to the database.");
-    mysql_select_db('worg') or die("Couldn't select the database");
+    $ret = pg_query($db, "SELECT count(id) FROM users WHERE digest='$_SESSION[pass]' AND author='$_SESSION[user]'") or die("Couldn't query the user-database.");
 
-    $result = mysql_query("SELECT count(id) FROM users WHERE digest='$_SESSION[pass]' AND author='$_SESSION[user]'") or die("Couldn't query the user-database.");
-    $num = mysql_result($result, 0);
+    $num = pg_fetch_array($ret, NULL, PGSQL_NUM);
 
-    if ($num) $auth = 1;
+    if ($num[0]) $auth = 1;
   }
   }
 ?>
