@@ -1,5 +1,5 @@
 <?php
-$root = "/home/baldig/projects/webservers/worg";
+$root = "/var/www/worg/php";
 $view = $_GET['view'];
 if($view == "") {
 
@@ -30,15 +30,16 @@ function traverseDirTree($base,$fileFunc,$dirFunc=null,$afterDirFunc=null){
 }
 
 function outputPath($path){
+  global $root;
   $base = basename($path);
   if((($base != "." && $base != ".." && $base != ".git") && !is_file($path)) || preg_match('/.org$/', $path)) {
     $level=substr_count($path,'/');       
     for ($i=1;$i<$level;$i++) echo '   ';
     if (!is_file($path)) echo basename($path);
     else {
-        $path = preg_replace("@home/baldig/projects/webservers/worg/org/@", "", $path);
-        $path = preg_replace('@\.org$@', "", $path);
-    	echo "<a href='$path.html'>" . basename($path) . "</a>";
+      $path = preg_replace("@$root/org/@", "", "/" . $path);
+      $path = preg_replace('@\.org$@', "", $path);
+      echo "<a href='$path.html'>" . basename($path) . "</a>";
     }	
     echo "\n";
   }
