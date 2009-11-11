@@ -4,16 +4,53 @@
 // set the path to php directory
 // where org symbolic link resides
 // i.e. $root = "/var/www/worg/php";
+//* Paths
 $root = "/var/www/worg/php";
+$style_path = "http://www.ics.uci.edu/~zellerm/tips/html/style.css";
+//*
+
+//* Features
+
+//** git
+$git_enabled = true;
+
+//** gitweb
+$gitweb_enabled = true;
+$gitweb_port = 8081;
+
+//** comments
+$comments_enabled = false; // TODO
+
+//** inline edit
+$edit_enabled = true;
+$pg_connection_string = "host=localhost port=5432 dbname=worg user=worg password=worg";
+//*
+
+$side_bar = true; // TODO
 ?>
 <?php
 function writeHeader() {
+  global $style_path, $side_bar;
   echo "<html><head>";
-  echo "<link rel='stylesheet' type='text/css' href='http://www.ics.uci.edu/~zellerm/tips/html/style.css'/>";
-  echo "</head><body style='margin:0'><table width='100%' cellspacing='0' width='100%' border='0' summary='' cellpadding='0' style='border:none' id='bodyTable'>";
+  echo "<link rel='stylesheet' type='text/css' href='$style_path'/>";
+  echo "</head><body style='margin:0; background:#f30'><table width='100%' cellspacing='0' width='100%' border='0' summary='' cellpadding='0' style='border:none;background:none' id='bodyTable'>";
   echo "<tr valign='top'><td id='leftDiv' nowrap width='20'></td><td id='middleDiv' valign='top'><div id='bodyDiv'><div id='bodyContent'>";
+  echo "<table><tr><td colspan=2 style='height:50px; vertical-align:middle; background:#000'>&nbsp;<span style='font-size:30; color:white'>Michael Zeller</span>.com</td></tr><tr><td id='content' style='width:100%'>";
 }
 function writeFooter() {
+  global $side_bar;
+  if ($side_bar) {
+    echo "</td><td id='sidebar' style='min-width:125px; max-width:125px; background:#333; color:white'>";
+    echo "Search this Site<br>";
+    echo "Subscribe<br>";
+    echo "Recent Changes<br>";
+    echo "</td>";
+  }
+  else {
+    echo "</td><td></td>";
+  }
+  echo "</tr><tr><td colspan=2 style='height:25px; text-align:center; background:#000; vertical-align:middle'>Copyleft - <a href='http://github.com/zeller'>Michael Zeller</a> - 2009</td></tr></table>";
+  echo "<span style='float:left'>Powered by Emacs</span>";
   echo "</div></div></td><td id='rightDiv' nowrap width='20'></td></tr></table></body></html>";
 }
 ?>
@@ -139,7 +176,7 @@ if(ereg('[^A-Za-z0-9_/]', $view)) die("Invalid page requested: " . $view);
 
   if($_POST && $_POST['user'] != "" && $_POST['pass'] != "") {
     
-    $db = pg_connect("host=localhost port=5432 dbname=worg user=worg password=worg") or die("Couldn't connect to the database.");
+    $db = pg_connect($pg_connection_string) or die("Couldn't connect to the database.");
 
     // Add slashes to the username, and make a md5 checksum of the password.
     $_POST['user'] = addslashes($_POST['user']);
@@ -169,7 +206,7 @@ if(ereg('[^A-Za-z0-9_/]', $view)) die("Invalid page requested: " . $view);
   session_start();
   # always check if user is authenticated
   if ($_SESSION['user'] && $_SESSION['pass']) {
-    $db = pg_connect("host=localhost port=5432 dbname=worg user=worg password=worg") or die("Couldn't connect to the database.");
+    $db = pg_connect($pg_connection_string) or die("Couldn't connect to the database.");
     
     $ret = pg_query($db, "SELECT count(id) FROM users WHERE digest='$_SESSION[pass]' AND author='$_SESSION[user]'") or die("Couldn't query the user-database.");
 
@@ -183,7 +220,6 @@ if(ereg('[^A-Za-z0-9_/]', $view)) die("Invalid page requested: " . $view);
 <?php
 if($_POST && $_POST['content'] != "" && $auth) {
   $content = $_POST['content'];
-  $memo = preg_replace("@'@", "'\"'\"'", stripslashes($_POST['memo']));
   $file = "org/$view.org";
   $dir = "$root/" . dirname($file);
   @mkdir($dir, 0777, TRUE);
@@ -191,8 +227,11 @@ if($_POST && $_POST['content'] != "" && $auth) {
   fwrite($fh, stripslashes($content));
   fclose($fh);
   chdir($dir);
-  `git add $root/../org/$view.org 2>&1`;
-  `git commit '$root/../$file' -m '$memo' 2>&1`;
+  if ($git_enabled) {
+    $memo = preg_replace("@'@", "'\"'\"'", stripslashes($_POST['memo']));
+    `git add $root/../org/$view.org 2>&1`;
+    `git commit '$root/../$file' -m '$memo' 2>&1`;
+  }
   `emacs --batch --load org.elc --load cl.elc --load ess-site.elc --eval '(setq org-export-with-LaTeX-fragments t)' --eval '(setq ess-ask-for-ess-directory nil)' --eval '(setq ess-directory "$root/org/out/")' --visit $root/org/$view.org --funcall org-mode --funcall org-export-as-html 2>&1`;
   chdir("$root");
 }
@@ -201,35 +240,37 @@ writeHeader();
 <div id='header' style='padding-bottom:5px; margin-left:auto; position:relative'>
 <?php
   echo "<a href='/index.html'>Index</a>&nbsp;&nbsp;";
-  echo "<a href='http://home.michaelzeller.com:8081/?p=.git;a=history;f=$view.org;hb=HEAD'>History</a>&nbsp;&nbsp;";
-  if($_GET['mode'] != "" && $_GET['mode'] != "logout") {
-  echo "<a href='" . preg_replace('/.html&mode=[a-zA-Z]+/', '', @basename($_SERVER['REQUEST_URI'])) . ".html'>Cancel</a>";
-  if($_GET['mode'] == "login") {
-  echo "<span style='position:absolute; right:0'><form id='login' method='post' action='" . basename($_SERVER['REQUEST_URI'], ".html&mode=login") . ".html'><input type='text' name='user'>&nbsp;<input type='password' name='pass'>&nbsp;<input type='submit' value='Submit'></form></span>";
-  }
+  if ($gitweb_enabled) echo "<a href='http://" . $_SERVER['SERVER_NAME'] . ":" . $gitweb_port . "/?p=.git;a=history;f=$view.org;hb=HEAD'>History</a>&nbsp;&nbsp;";
+  if($_GET['mode'] != "" && $_GET['mode'] != "logout" && $edit_enabled) {
+    echo "<a href='" . preg_replace('/.html&mode=[a-zA-Z]+/', '', @basename($_SERVER['REQUEST_URI'])) . ".html'>Cancel</a>";
+    if($_GET['mode'] == "login") {
+      echo "<span style='position:absolute; right:0'><form id='login' method='post' action='" . basename($_SERVER['REQUEST_URI'], ".html&mode=login") . ".html'><input type='text' name='user'>&nbsp;<input type='password' name='pass'>&nbsp;<input type='submit' value='Submit'></form></span>";
+    }
   }
   else {
     $tangle_file = preg_replace('/.html(&mode=[a-zA-Z]+)?/', '', preg_replace('@http://home.michaelzeller.com/@', '', $_SERVER['REQUEST_URI'])) . ".R";
     if (file_exists("$root/org/$tangle_file")) echo "<a href='$tangle_file'>Tangle</a>&nbsp;&nbsp";
-    if ($auth) {
-      echo "<a href='" . basename($_SERVER['REQUEST_URI'], ".html") . ".html&mode=edit'>Edit</a>";
-      echo "<span style='position:absolute; right:0;'><a href='" . preg_replace('/.html(&mode=[a-zA-Z]+)?/', '', @basename($_SERVER['REQUEST_URI'])) . ".html&mode=logout'>Logout</a></span>";
-    }
-    else {
-      echo "<span style='position:absolute; right:0;'><a href='" . preg_replace('/.html(&mode=[a-zA-Z]+)?/', '', @basename($_SERVER['REQUEST_URI'])) . ".html&mode=login'>Login</a></span>";
+    if ($edit_enabled) {
+      if ($auth) {
+        echo "<a href='" . basename($_SERVER['REQUEST_URI'], ".html") . ".html&mode=edit'>Edit</a>";
+        echo "<span style='position:absolute; right:0;'><a href='" . preg_replace('/.html(&mode=[a-zA-Z]+)?/', '', @basename($_SERVER['REQUEST_URI'])) . ".html&mode=logout'>Logout</a></span>";
+      }
+      else {
+        echo "<span style='position:absolute; right:0;'><a href='" . preg_replace('/.html(&mode=[a-zA-Z]+)?/', '', @basename($_SERVER['REQUEST_URI'])) . ".html&mode=login'>Login</a></span>";
+      }
     }
   }
 ?>
 </div>
 
 <?php
-if($_GET['mode'] == 'edit') {
+if($_GET['mode'] == 'edit' && $edit_enabled) {
 if($auth) {
 echo "<form method='post' action='" . basename($_SERVER['REQUEST_URI'], ".html&mode=edit") . ".html'>";
 echo "<textarea name='content' style='width:100%;height:300px' type='textbox'>";
 @include("$root/org/$view.org");
 echo "</textarea>";
-echo "<br/><input type='text' name='memo' onfocus='this.select();' style='width:100%' value='Short description'/>";
+if ($git_enabled) echo "<br/><input type='text' name='memo' onfocus='this.select();' style='width:100%' value='Short description'/>";
 echo "<br/><input type='submit' value='Save'/>";
 echo "</form>";
 }
