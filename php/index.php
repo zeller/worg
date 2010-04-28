@@ -9,6 +9,10 @@ $root = "/var/www/worg/php";
 $style_path = "http://www.ics.uci.edu/~zellerm/tips/html/style.css";
 //*
 
+$domain = "Michael Zeller";
+$footer = "Copyleft - <a style='color:white' href='http://github.com/zeller'>Michael Zeller</a> - 2009";
+$credits = "Powered by Emacs, Apache, and Debian Linux, in a box under my TV.";
+
 //* Features
 
 //** git
@@ -21,6 +25,9 @@ $gitweb_port = 8081;
 //** comments
 $comments_enabled = false; // TODO
 
+//** viewing of source code
+$view_source_enabled = true;
+
 //** inline edit
 $edit_enabled = true;
 $pg_connection_string = "host=localhost port=5432 dbname=worg user=worg password=worg";
@@ -30,43 +37,55 @@ $side_bar = true; // TODO
 ?>
 <?php
 function writeHeader() {
-  global $style_path, $side_bar;
+  global $style_path, $side_bar, $domain;
   echo "<html><head>";
   echo "<link rel='stylesheet' type='text/css' href='$style_path'/>";
   echo "</head><body style='margin:0; background:#f30'><table width='100%' cellspacing='0' width='100%' border='0' summary='' cellpadding='0' style='border:none;background:none' id='bodyTable'>";
   echo "<tr valign='top'><td id='leftDiv' nowrap width='20'></td><td id='middleDiv' valign='top'><div id='bodyDiv'><div id='bodyContent'>";
-  echo "<table><tr><td colspan=2 style='height:50px; vertical-align:middle; background:#000'>&nbsp;<span style='font-size:30; color:white'>Michael Zeller</span>.com</td></tr><tr><td id='content' style='width:100%'>";
+  echo "<table><tr><td colspan=2 style='height:50px; vertical-align:middle; background:#000'><span style='font-size:30; color:white'>$domain</span>.com</td></tr><tr><td id='content' style='width:100%'>";
 }
 function writeFooter() {
-  global $side_bar;
+  global $side_bar, $footer, $credits;
   if ($side_bar) {
     echo "</td><td id='sidebar' style='min-width:125px; max-width:125px; background:#333; color:white'>";
-    echo "Search this Site<br>";
-    echo "Subscribe<br>";
-    echo "Recent Changes<br>";
+    echo "<a style='color:white' href='/index.html'>Site Index</a><br>";
+    echo "<a style='color:white' href='/search.html'>Search this Site</a><br>";
+    echo "<a style='color:white' href='http://www.ics.uci.edu/~zellerm/'>About Me</a><br>";
+    echo "<a style='color:white' href='http://home.michaelzeller.com:8081/?p=.git;a=rss'>Subscribe</a><br>";
+    echo "<a style='color:white' href='http://home.michaelzeller.com:8081/?p=.git;a=summary'>Recent Changes</a><br>";
+    echo "Post Comment<br>";
     echo "</td>";
   }
   else {
     echo "</td><td></td>";
   }
-  echo "</tr><tr><td colspan=2 style='height:25px; text-align:center; background:#000; vertical-align:middle'>Copyleft - <a href='http://github.com/zeller'>Michael Zeller</a> - 2009</td></tr></table>";
-  echo "<span style='float:left'>Powered by Emacs</span>";
+  echo "</tr><tr><td colspan=2 style='height:25px; text-align:center; background:#000; vertical-align:middle'>$footer</td></tr></table>";
+  echo "<span style='float:left'>$credits</span>";
   echo "</div></div></td><td id='rightDiv' nowrap width='20'></td></tr></table></body></html>";
 }
 ?>
 <?php
 $view = $_GET['view'];
+function makeButton($text, $linebreak=FALSE, $type="button", $onClick="") {
+  echo "<input type='$type' id='$text' value='$text' onClick=\"$onClick\"/>";
+  if ($linebreak) echo "<br/>";
+}
+function makeTextbox($id, $linebreak=FALSE, $type="text") {
+  echo "<input type='$type' id='$id'/>";
+  if ($linebreak) echo "<br/>";
+}
+
+// copied from code for "search"
+if($_GET['mode'] == "php") {
+  writeHeader();
+  include($root . '/org/' . $_GET['view'] . ".php");
+  writeFooter();
+  exit();
+}
+
 if($view == "admin") {
   writeHeader();
   echo "<h1 class=\"title\">Admin</h1>";
-  function makeButton($text, $linebreak=FALSE) {
-    echo "<input type='button' id='$text' value='$text'/>";
-    if ($linebreak) echo "<br/>";
-  }
-  function makeTextbox($id, $linebreak=FALSE, $type="text") {
-    echo "<input type='$type' id='$text'/>";
-    if ($linebreak) echo "<br/>";
-  }
   echo "<table style='border:none'><tr><td align='right'>";
   echo "<table style='border:none'><tr><td align='right'>";
   echo "Author: </td><td>"; makeTextbox("username", TRUE);
@@ -85,11 +104,43 @@ if($view == "admin") {
   writeFooter();
   exit();
 }
+if($view == "search") {
+  writeHeader();
+  //echo "<form>";
+  echo "Enter search term:<br>";
+  makeTextbox("term", FALSE);
+  echo "&nbsp;";
+  makeButton("Search", TRUE, $type="button", $onClick="location.href = 'search.html&term=' + document.getElementById('term').value;");
+  //echo "</form>";
+  echo "<hr>";
+  if($term = $_GET['term']) {
+    // print the results out
+    echo "Search results for \"<b>$term</b>\":<br>";
+    $results = explode("\n",shell_exec("lid -f $root/org/ID " . escapeshellarg($term) . " --result=grep"));
+    if (sizeof($results) > 1) {
+      echo "<table>";
+      echo "<tr><th>File</th><th>Line</th></tr>";
+      foreach ($results as $result) {
+        $data = explode(":",$result);
+        $filename = array_shift($data);
+        $filename = preg_replace('@.org$@','.html',preg_replace('@^../org/@',"",$filename));
+        echo "<tr><td><a href='" . $filename . "'>$filename</a>:" . array_shift($data) . "</td><td>" . implode($data,":") . "</td></tr>";
+      }
+      echo "</table>";
+    }
+    else {
+      echo "No results.";
+    }
+  }
+  writeFooter();
+  exit();
+}
 if($view == "") {
   writeHeader();
   echo "<h1 class=\"title\">Index</h1>";
   $output = "";
   $empty = array(true);
+
   function traverseDirTree($base,$fileFunc,$dirFunc=null,$afterDirFunc=null) {
     
     global $empty;
@@ -115,7 +166,9 @@ if($view == "") {
         if ($dirFunc!==null) $dirFunc($path);
         if (($subdirectory!='.') && ($subdirectory!='..') && ($subdirectory!='.git')){
           array_push($empty, true);
+          //print_r($empty);
           traverseDirTree($path.'/',$fileFunc,$dirFunc,$afterDirFunc);
+          //print_r($empty);
         }
       }
     }
@@ -127,18 +180,22 @@ if($view == "") {
 
     global $output, $empty, $root;
     $base = basename($path);
-    if($base != "index.html" && preg_match('/.html$/', $path)) {
+    if($base != "index.html" && preg_match('/.html$/', $path) && !preg_match('/.org.html$/', $path)) {
       $level=substr_count($path,'/');	     
       //$path = preg_replace('/.html$/', "", $path);
       $path = preg_replace("@$root/org/@", "", "/" . $path);
-      $output = "<a href='$path' style='font-weight:normal;'>" . basename($path) . "</a>\n" . $output;
+      $output = "<a href='$path' style='font-weight:bold;'>" . basename($path) . "</a>\n" . $output;
       for ($i=1;$i<$level;$i++) $output = '   ' . $output;
-      array_pop($empty); 
-      array_push($empty, false);
+      //array_pop($empty); 
+      //array_push($empty, false);
+      for ($i=0, $depth=count($empty), $empty=array(); $i<$depth;$i++)
+        array_push($empty, false);
     }
     else if($base == "index.html") {
-      array_pop($empty); 
-      array_push($empty, false);
+      //array_pop($empty); 
+      //array_push($empty, false);
+      for ($i=0, $depth=count($empty), $empty=array(); $i<$depth;$i++)
+        array_push($empty, false);
     }
   }
 
@@ -250,6 +307,9 @@ writeHeader();
   else {
     $tangle_file = preg_replace('/.html(&mode=[a-zA-Z]+)?/', '', preg_replace('@http://home.michaelzeller.com/@', '', $_SERVER['REQUEST_URI'])) . ".R";
     if (file_exists("$root/org/$tangle_file")) echo "<a href='$tangle_file'>Tangle</a>&nbsp;&nbsp";
+    if ($view_source_enabled) {
+      echo "<a href='" . preg_replace('/.html(&mode=[a-zA-Z]+)?/', '', @basename($_SERVER['REQUEST_URI'])) . ".html&mode=source'>Source</a> ";
+    }
     if ($edit_enabled) {
       if ($auth) {
         echo "<a href='" . basename($_SERVER['REQUEST_URI'], ".html") . ".html&mode=edit'>Edit</a>";
@@ -268,7 +328,7 @@ if($_GET['mode'] == 'edit' && $edit_enabled) {
 if($auth) {
 echo "<form method='post' action='" . basename($_SERVER['REQUEST_URI'], ".html&mode=edit") . ".html'>";
 echo "<textarea name='content' style='width:100%;height:300px' type='textbox'>";
-@include("$root/org/$view.org");
+echo htmlentities(@file_get_contents("$root/org/$view.org"));
 echo "</textarea>";
 if ($git_enabled) echo "<br/><input type='text' name='memo' onfocus='this.select();' style='width:100%' value='Short description'/>";
 echo "<br/><input type='submit' value='Save'/>";
@@ -279,7 +339,10 @@ else echo "Insufficient privledges to edit";
 ?>
 
 <?php 
-@readfile("org/$view.html");
+// Check if it exists (both .org and .html, otherwise display 'Not found'). As another note, the Index page needs to check that the .org also exists before displaying a link. There is also a small bug with the Index in that it isn't displaying all of the folders (look Chris DuBois class folder in class/ for an example)
+
+if($_GET['mode'] == 'source' && $view_source_enabled) @readfile("org/$view.org.html");
+else @readfile("org/$view.html");
 ?>
 
 <?php

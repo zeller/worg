@@ -55,13 +55,19 @@ LoadModule php5_module modules/libphp5.so
 # if you use apache from the repository, place this in the default Document node
 RewriteEngine On
 RewriteCond %{REQUEST_URI} !^/org
-RewriteRule (.*)\.(png|jpg)$ /org/$1.$2
+RewriteCond %{REQUEST_URI} !.html
+RewriteCond %{REQUEST_URI} !.php$
+RewriteRule (.*)\.(.*)$ /org/$1.$2
+RewriteCond %{REQUEST_URI} !index.php$
+RewriteRule (.*)\.php$ /index.php?view=$1&mode=php
 RedirectMatch 301 (.*)/$ $1/index.html
 RewriteRule ^index.html /index.php
 RewriteRule (.*)\.html$ /index.php?view=$1
 RewriteRule (.*)\.html&mode=edit /index.php?view=$1&mode=edit
 RewriteRule (.*)\.html&mode=login /index.php?view=$1&mode=login
 RewriteRule (.*)\.html&mode=logout /index.php?view=$1&mode=logout
+RewriteRule (.*)\.html&mode=source /index.php?view=$1&mode=source
+RewriteRule (.*)\.html&term=(.*) /index.php?view=$1&term=$2
 #+END_EXAMPLE
 
 #+BEGIN_EXAMPLE 
@@ -69,6 +75,9 @@ AddType application/x-httpd-php .php
 AddHandler php5-script .php
 #+END_EXAMPLE
 
+** TODO Update the above
+
+Update the above with the latest Rewrite rules in Apache
 
 * Database backend
 
