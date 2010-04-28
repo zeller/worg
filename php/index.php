@@ -10,8 +10,10 @@ $style_path = "http://www.ics.uci.edu/~zellerm/tips/html/style.css";
 //*
 
 $domain = "Michael Zeller";
+$header = "<span style='font-size:30; color:white'>$domain</span>.com<span style='float:right'><a href='http://github.com/zeller/worg/raw/master/php/index.php'>view source</a></span>";
 $footer = "Copyleft - <a style='color:white' href='http://github.com/zeller'>Michael Zeller</a> - 2009";
 $credits = "Powered by Emacs, Apache, and Debian Linux, in a box under my TV.";
+$about_me_url = "http://www.ics.uci.edu/~zellerm/";
 
 //* Features
 
@@ -20,7 +22,6 @@ $git_enabled = true;
 
 //** gitweb
 $gitweb_enabled = true;
-$gitweb_port = 8081;
 
 //** comments
 $comments_enabled = false; // TODO
@@ -37,23 +38,24 @@ $side_bar = true; // TODO
 ?>
 <?php
 function writeHeader() {
-  global $style_path, $side_bar, $domain;
+  global $style_path, $side_bar, $header;
   echo "<html><head>";
   echo "<link rel='stylesheet' type='text/css' href='$style_path'/>";
   echo "</head><body style='margin:0; background:#f30'><table width='100%' cellspacing='0' width='100%' border='0' summary='' cellpadding='0' style='border:none;background:none' id='bodyTable'>";
   echo "<tr valign='top'><td id='leftDiv' nowrap width='20'></td><td id='middleDiv' valign='top'><div id='bodyDiv'><div id='bodyContent'>";
-  echo "<table><tr><td colspan=2 style='height:50px; vertical-align:middle; background:#000'><span style='font-size:30; color:white'>$domain</span>.com</td></tr><tr><td id='content' style='width:100%'>";
+  echo "<table><tr><td colspan=2 style='height:50px; vertical-align:middle; background:#000'>$header</td></tr><tr><td id='content' style='width:100%'>";
 }
 function writeFooter() {
-  global $side_bar, $footer, $credits;
+  global $side_bar, $footer, $credits, $about_me_url;
   if ($side_bar) {
     echo "</td><td id='sidebar' style='min-width:125px; max-width:125px; background:#333; color:white'>";
     echo "<a style='color:white' href='/index.html'>Site Index</a><br>";
     echo "<a style='color:white' href='/search.html'>Search this Site</a><br>";
-    echo "<a style='color:white' href='http://www.ics.uci.edu/~zellerm/'>About Me</a><br>";
-    echo "<a style='color:white' href='http://home.michaelzeller.com:8081/?p=.git;a=rss'>Subscribe</a><br>";
-    echo "<a style='color:white' href='http://home.michaelzeller.com:8081/?p=.git;a=summary'>Recent Changes</a><br>";
-    echo "Post Comment<br>";
+    echo "<a style='color:white' href='$about_me_url'>About Me</a><br>";
+    echo "<a style='color:white' href='/gitweb/?p=.git;a=rss'>Subscribe</a><br>";
+    echo "<a style='color:white' href='/gitweb/?p=.git;a=summary'>Recent Changes</a><br>";
+    echo "Comments (<a style='color:white' href='about:blank'>0</a>)<br>";
+    echo "Attachments (<a style='color:white' href='about:blank'>0</a>)<br>";
     echo "</td>";
   }
   else {
@@ -297,7 +299,7 @@ writeHeader();
 <div id='header' style='padding-bottom:5px; margin-left:auto; position:relative'>
 <?php
   echo "<a href='/index.html'>Index</a>&nbsp;&nbsp;";
-  if ($gitweb_enabled) echo "<a href='http://" . $_SERVER['SERVER_NAME'] . ":" . $gitweb_port . "/?p=.git;a=history;f=$view.org;hb=HEAD'>History</a>&nbsp;&nbsp;";
+  if ($gitweb_enabled) echo "<a href='/gitweb/?p=.git;a=history;f=$view.org;hb=HEAD'>History</a>&nbsp;&nbsp;";
   if($_GET['mode'] != "" && $_GET['mode'] != "logout" && $edit_enabled) {
     echo "<a href='" . preg_replace('/.html&mode=[a-zA-Z]+/', '', @basename($_SERVER['REQUEST_URI'])) . ".html'>Cancel</a>";
     if($_GET['mode'] == "login") {
@@ -305,7 +307,7 @@ writeHeader();
     }
   }
   else {
-    $tangle_file = preg_replace('/.html(&mode=[a-zA-Z]+)?/', '', preg_replace('@http://home.michaelzeller.com/@', '', $_SERVER['REQUEST_URI'])) . ".R";
+    $tangle_file = preg_replace('/.html(&mode=[a-zA-Z]+)?/', '', $_SERVER['REQUEST_URI']) . ".R";
     if (file_exists("$root/org/$tangle_file")) echo "<a href='$tangle_file'>Tangle</a>&nbsp;&nbsp";
     if ($view_source_enabled) {
       echo "<a href='" . preg_replace('/.html(&mode=[a-zA-Z]+)?/', '', @basename($_SERVER['REQUEST_URI'])) . ".html&mode=source'>Source</a> ";
