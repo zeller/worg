@@ -6,11 +6,11 @@
 // i.e. $root = "/var/www/worg/php";
 //* Paths
 $root = "/var/www/worg/php";
-$style_path = "http://www.ics.uci.edu/~zellerm/tips/html/style.css";
+$style_path = "/files/style.css";
 //*
 
 $domain = "Michael Zeller";
-$header = "<span style='font-size:30; color:white'>$domain</span>.com<span style='float:right'><a href='http://github.com/zeller/worg/raw/master/php/index.php'>view source</a></span>";
+$header = "<span style='font-size:30; color:white'>$domain</span>.com<span style='float:right'><a href='http://github.com/zeller/worg/raw/master/php/index.php'>M-x view-source</a></span>";
 $footer = "Copyleft - <a style='color:white' href='http://github.com/zeller'>Michael Zeller</a> - 2009";
 $credits = "Powered by Emacs, Apache, and Debian Linux, in a box under my TV.";
 $about_me_url = "http://www.ics.uci.edu/~zellerm/";
@@ -53,7 +53,7 @@ function writeFooter() {
     echo "<a style='color:white' href='/search.html'>Search this Site</a><br>";
     echo "<a style='color:white' href='$about_me_url'>About Me</a><br>";
     echo "<a style='color:white' href='/gitweb/?p=.git;a=rss'>Subscribe</a><br>";
-    echo "<a style='color:white' href='/gitweb/?p=.git;a=summary'>Recent Changes</a><br>";
+    echo "<a style='color:white' href='/index.html&mode=history'>Recent Changes</a><br>";
     echo "Comments (<a style='color:white' href='about:blank'>0</a>)<br>";
     echo "Attachments (<a style='color:white' href='about:blank'>0</a>)<br>";
     echo "</td>";
@@ -81,6 +81,19 @@ function makeTextbox($id, $linebreak=FALSE, $type="text") {
 if($_GET['mode'] == "php") {
   writeHeader();
   include($root . '/org/' . $_GET['view'] . ".php");
+  writeFooter();
+  exit();
+}
+if($_GET['mode'] == "history") {
+  writeHeader();
+  if($_GET['view'] == "index") // Index page
+    echo "<iframe src='/gitweb/?p=.git;a=summary' width='100%' height=800 style='margin:auto; border-width:0;'>Your browser does not support iframes.</iframe>";
+  else {
+    echo "<div id='header' style='padding-bottom:5px; margin-left:auto; position:relative'>";
+    echo "<a href='" . preg_replace('/.html&mode=[a-zA-Z]+/', '', @basename($_SERVER['REQUEST_URI'])) . ".html'>Cancel</a>";
+    echo "<iframe src='/gitweb/?p=.git;a=history;f=$view.org;hb=HEAD' width='100%' height=700 style='margin:auto; border-width:0;'>Your browser does not support iframes.</iframe>";
+    echo "</div>";
+  }
   writeFooter();
   exit();
 }
@@ -137,7 +150,7 @@ if($view == "search") {
   writeFooter();
   exit();
 }
-if($view == "") {
+if($view == "index") {
   writeHeader();
   echo "<h1 class=\"title\">Index</h1>";
   $output = "";
@@ -299,7 +312,8 @@ writeHeader();
 <div id='header' style='padding-bottom:5px; margin-left:auto; position:relative'>
 <?php
   echo "<a href='/index.html'>Index</a>&nbsp;&nbsp;";
-  if ($gitweb_enabled) echo "<a href='/gitweb/?p=.git;a=history;f=$view.org;hb=HEAD'>History</a>&nbsp;&nbsp;";
+  if ($gitweb_enabled) 
+    echo "<a href='" . preg_replace('/.html(&mode=[a-zA-Z]+)?/', '', @basename($_SERVER['REQUEST_URI'])) . ".html&mode=history" . "'>History</a>&nbsp;&nbsp;";
   if($_GET['mode'] != "" && $_GET['mode'] != "logout" && $edit_enabled) {
     echo "<a href='" . preg_replace('/.html&mode=[a-zA-Z]+/', '', @basename($_SERVER['REQUEST_URI'])) . ".html'>Cancel</a>";
     if($_GET['mode'] == "login") {
