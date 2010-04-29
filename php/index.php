@@ -49,6 +49,7 @@ function writeFooter() {
   global $side_bar, $footer, $credits, $about_me_url;
   if ($side_bar) {
     echo "</td><td id='sidebar' style='min-width:125px; max-width:125px; background:#333; color:white'>";
+    echo "<a style='color:white' href='/'>Introduction</a><br>";
     echo "<a style='color:white' href='/index.html'>Site Index</a><br>";
     echo "<a style='color:white' href='/search.html'>Search this Site</a><br>";
     echo "<a style='color:white' href='$about_me_url'>About Me</a><br>";
